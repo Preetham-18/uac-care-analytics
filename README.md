@@ -14,6 +14,26 @@ and long-term sustainability of care delivery.
 - Identify periods of capacity strain and relief
 - Analyze the balance between intake, transfers, and discharges
 
+## Dataset
+Daily reporting from **12 Jan 2023 to 21 Dec 2025**.
+
+| Original column | Clean name | Meaning |
+|---|---|---|
+| Date | `date` | Reporting date |
+| Children apprehended and placed in CBP custody | `apprehended` | Daily intake |
+| Children in CBP custody | `cbp_custody` | Active CBP care load |
+| Children transferred out of CBP custody | `cbp_transferred` | Flow into HHS |
+| Children in HHS Care | `hhs_care` | Active HHS care load |
+| Children discharged from HHS Care | `hhs_discharged` | Sponsor placements |
+
+### Initial data findings (Day 2)
+- The file has 1,170 rows, but only **720 contain data**. The other 450 are empty.
+- `Children in HHS Care` is stored as text (e.g. "2,484") because of thousands separators.
+- Rows are ordered newest first, so they must be sorted for time-series work.
+- Reporting is not daily: **355 of 1,075 calendar days are missing**, and Fridays and Saturdays are almost never reported.
+- **86 rows** have transfers greater than CBP custody. These are flagged for review, not deleted.
+- Discharges never exceed HHS care.
+
 ## Planned Deliverables
 - [ ] Cleaned and validated dataset
 - [ ] Derived capacity metrics and KPIs
@@ -31,9 +51,16 @@ and long-term sustainability of care delivery.
 - `tests/` unit tests
 
 ## Setup
-    python -m venv venv
-    source venv/bin/activate      # Windows: venv\Scripts\activate
-    pip install -r requirements.txt
+```bash
+python -m venv venv
+source venv/bin/activate      # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+The raw CSV is not included in the repository. Place it in `data/raw/`
+before running the notebooks.
 
 ## Progress Log
-- Day 1: Repository setup and project structure
+- **Day 1:** Repository setup, folder structure, virtual environment, README
+- **Day 2:** Loaded the dataset, inspected structure and data types, renamed columns, removed empty rows, found data quality issues (`notebooks/01_data_loading.ipynb`)
+- Day 3: Datetime conversion, sorting, duplicate and missing-date checks (next)

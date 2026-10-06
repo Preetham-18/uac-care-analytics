@@ -63,4 +63,4 @@ before running the notebooks.
 ## Progress Log
 - **Day 1:** Repository setup, folder structure, virtual environment, README
 - **Day 2:** Loaded the dataset, inspected structure and data types, renamed columns, removed empty rows, found data quality issues (`notebooks/01_data_loading.ipynb`)
-- Day 3: Datetime conversion, sorting, duplicate and missing-date checks (next)
+-- **Day 3:** Converted dates, sorted chronologically, found no duplicates, built a complete 1,075-day index and flagged 355 unreported days (`notebooks/02_time_index.ipynb`)

@@ -66,3 +66,5 @@ before running the notebooks.
 -- **Day 3:** Converted dates, sorted chronologically, found no duplicates, built a complete 1,075-day index and flagged 355 unreported days (`notebooks/02_time_index.ipynb`)
 
 - **Day 4:** Defined validation rules (R1 to R4), flagged 106 anomalies across 104 dates, and checked how well transfers minus discharges explains HHS care changes (`notebooks/03_validation.ipynb`, `data/processed/anomaly_report.csv`)
+
+- **Day 5:** Built a reusable cleaning pipeline (`src/cleaning.py`) that produces a validated 1,075-day table (`data/processed/uac_daily_clean.csv`), verified against earlier results (`notebooks/04_check_clean_data.ipynb`)

@@ -70,3 +70,5 @@ before running the notebooks.
 - **Day 5:** Built a reusable cleaning pipeline (`src/cleaning.py`) that produces a validated 1,075-day table (`data/processed/uac_daily_clean.csv`), verified against earlier results (`notebooks/04_check_clean_data.ipynb`)
 
 - **Day 6:** Built core metrics (`src/metrics.py`): Total System Load and Net Daily Intake, with unit tests. Found that Net Daily Intake does not fully explain actual HHS care changes in 2023 and 2024 (`notebooks/05_core_metrics.ipynb`)
+
+- **Day 7:** Added growth rate (gap-aware) and cumulative net intake, with tests. Showed that the mismatch between net intake and actual HHS change is concentrated in 2023 (`notebooks/06_growth_and_cumulative.ipynb`)

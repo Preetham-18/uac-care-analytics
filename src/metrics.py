@@ -59,3 +59,36 @@ def add_cumulative_net_intake(df):
     df["hhs_change_since_start"] = df["hhs_care"] - first_hhs
     df["unexplained_change"] = df["hhs_change_since_start"] - df["cumulative_net_intake"]
     return df
+
+
+def _run_length(condition):
+    """For every True, how many True values in a row so far (0 for False)."""
+    run_id = (~condition).cumsum()
+    return condition.groupby(run_id).cumsum()
+
+
+def add_backlog_indicators(df, min_streak=5):
+    """Flag sustained pressure, measured two ways.
+
+    Streaks are counted over *reported* days only, so the regular Friday and
+    Saturday gaps do not break a streak.
+
+    - positive_intake_streak : consecutive reports with Net Daily Intake > 0
+    - rising_care_streak     : consecutive reports where HHS care rose
+    - backlog_flag_intake    : positive_intake_streak >= min_streak (official)
+    - backlog_flag_care      : rising_care_streak >= min_streak (cross-check)
+    Unreported days stay empty.
+    """
+    df = df.copy()
+    reported = df[df["is_reported"]]
+    hhs_change = reported["hhs_care"].diff()
+
+    intake_positive = (reported["net_daily_intake"] > 0).fillna(False).astype(bool)
+    care_rising = (hhs_change > 0).fillna(False).astype(bool)
+
+    df["hhs_change_since_prev"] = hhs_change
+    df["positive_intake_streak"] = _run_length(intake_positive).astype("Int64")
+    df["rising_care_streak"] = _run_length(care_rising).astype("Int64")
+    df["backlog_flag_intake"] = df["positive_intake_streak"] >= min_streak
+    df["backlog_flag_care"] = df["rising_care_streak"] >= min_streak
+    return df

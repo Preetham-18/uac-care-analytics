@@ -2,6 +2,7 @@ import pandas as pd
 
 from src.metrics import add_core_metrics
 from src.metrics import add_cumulative_net_intake, add_growth_rate
+from src.metrics import add_backlog_indicators
 
 
 def make_row(cbp_custody, hhs_care, transferred, discharged):
@@ -75,3 +76,38 @@ def test_cumulative_net_intake_skips_unreported_days():
     assert out.iloc[3]["cumulative_net_intake"] == 6
     assert out.iloc[3]["hhs_change_since_start"] == 10
     assert out.iloc[3]["unexplained_change"] == 4
+
+
+def make_backlog_df(net=(5, pd.NA, pd.NA, 3, 2)):
+    idx = pd.date_range("2024-01-04", periods=5, freq="D", name="date")  # Thu to Mon
+    return pd.DataFrame(
+        {
+            "net_daily_intake": pd.array(list(net), dtype="Int64"),
+            "hhs_care": pd.array([100, pd.NA, pd.NA, 110, 120], dtype="Int64"),
+            "is_reported": [True, False, False, True, True],
+        },
+        index=idx,
+    )
+
+
+def test_streak_is_not_broken_by_unreported_days():
+    out = add_backlog_indicators(make_backlog_df(), min_streak=3)
+    assert out.iloc[4]["positive_intake_streak"] == 3
+    assert out.iloc[4]["backlog_flag_intake"] == True  # noqa: E712
+
+
+def test_negative_day_resets_the_streak():
+    out = add_backlog_indicators(make_backlog_df(net=(5, pd.NA, pd.NA, -3, 2)), min_streak=3)
+    assert out.iloc[4]["positive_intake_streak"] == 1
+    assert out.iloc[4]["backlog_flag_intake"] == False  # noqa: E712
+
+
+def test_unreported_days_have_no_flag():
+    out = add_backlog_indicators(make_backlog_df(), min_streak=3)
+    assert pd.isna(out.iloc[1]["backlog_flag_intake"])
+
+
+def test_rising_care_streak_counts_reports_where_hhs_grew():
+    out = add_backlog_indicators(make_backlog_df(), min_streak=3)
+    assert out.iloc[0]["rising_care_streak"] == 0     # no previous report
+    assert out.iloc[4]["rising_care_streak"] == 2

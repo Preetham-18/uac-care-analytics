@@ -74,3 +74,5 @@ before running the notebooks.
 - **Day 7:** Added growth rate (gap-aware) and cumulative net intake, with tests. Showed that the mismatch between net intake and actual HHS change is concentrated in 2023 (`notebooks/06_growth_and_cumulative.ipynb`)
 
 - **Day 8:** Built the Backlog Indicator two ways (positive net intake streaks and rising HHS care streaks), compared them, and tested threshold sensitivity (`notebooks/07_backlog.ipynb`)
+
+- **Day 9:** Built daily, weekly (Sun-Sat) and monthly trend summaries using per-reported-day averages (`src/trends.py`, `notebooks/08_trends.ipynb`). Peak month Dec 2023, lowest Aug 2025

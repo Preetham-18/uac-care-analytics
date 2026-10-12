@@ -1,8 +1,9 @@
 import pandas as pd
-
+import pytest
 from src.metrics import add_core_metrics
 from src.metrics import add_cumulative_net_intake, add_growth_rate
 from src.metrics import add_backlog_indicators
+from src.trends import summarize_by_period
 
 
 def make_row(cbp_custody, hhs_care, transferred, discharged):
@@ -111,3 +112,40 @@ def test_rising_care_streak_counts_reports_where_hhs_grew():
     out = add_backlog_indicators(make_backlog_df(), min_streak=3)
     assert out.iloc[0]["rising_care_streak"] == 0     # no previous report
     assert out.iloc[4]["rising_care_streak"] == 2
+
+
+
+def make_df():
+    # Sun 2024-01-07 .. Sat 2024-01-13, then Sun 2024-01-14
+    idx = pd.date_range("2024-01-07", "2024-01-14", freq="D", name="date")
+    reported = [True, True, True, True, True, False, False, True]
+    df = pd.DataFrame(index=idx)
+    for col in ["cbp_custody", "hhs_care", "total_system_load",
+                "apprehended", "cbp_transferred", "hhs_discharged", "net_daily_intake"]:
+        df[col] = pd.array([10, 20, 30, 40, 50, pd.NA, pd.NA, 100], dtype="Int64")
+    df["is_reported"] = reported
+    return df
+
+
+def test_weekly_mean_uses_only_reported_days():
+    out = summarize_by_period(make_df(), "W")
+    assert len(out) == 2
+    assert out.iloc[0]["hhs_care"] == 30        # mean of 10..50, not diluted by gaps
+    assert out.iloc[0]["reported_days"] == 5
+
+
+def test_sunday_starts_a_new_week():
+    out = summarize_by_period(make_df(), "W")
+    assert out.index[1] == pd.Timestamp("2024-01-14")
+    assert out.iloc[1]["reported_days"] == 1
+
+
+def test_monthly_groups_by_calendar_month():
+    out = summarize_by_period(make_df(), "M")
+    assert len(out) == 1
+    assert out.iloc[0]["reported_days"] == 6
+
+
+def test_invalid_granularity_raises():
+    with pytest.raises(ValueError):
+        summarize_by_period(make_df(), "Y")

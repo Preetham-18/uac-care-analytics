@@ -76,3 +76,5 @@ before running the notebooks.
 - **Day 8:** Built the Backlog Indicator two ways (positive net intake streaks and rising HHS care streaks), compared them, and tested threshold sensitivity (`notebooks/07_backlog.ipynb`)
 
 - **Day 9:** Built daily, weekly (Sun-Sat) and monthly trend summaries using per-reported-day averages (`src/trends.py`, `notebooks/08_trends.ipynb`). Peak month Dec 2023, lowest Aug 2025
+
+- - **Day 10:** Added 7- and 14-day rolling averages (calendar windows) and the Care Load Volatility Index (std/mean, %). Stability improved each year; the most volatile period was Feb 2025 (`notebooks/09_rolling_volatility.ipynb`)

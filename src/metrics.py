@@ -92,3 +92,34 @@ def add_backlog_indicators(df, min_streak=5):
     df["backlog_flag_intake"] = df["positive_intake_streak"] >= min_streak
     df["backlog_flag_care"] = df["rising_care_streak"] >= min_streak
     return df
+
+
+def add_rolling_metrics(df, windows=(7, 14), min_reports=3):
+    """Rolling averages and the Care Load Volatility Index.
+
+    Windows are measured in CALENDAR days (e.g. the last 7 days), but only
+    reported days take part, so a window normally holds 4 to 5 reports.
+    A window with fewer than `min_reports` reports is left empty, so a
+    "7-day average" is never built from one or two isolated reports.
+
+    For each window w (in days) this adds:
+    - load_avg_{w}d        : rolling mean of Total System Load
+    - net_intake_avg_{w}d  : rolling mean of Net Daily Intake
+    - load_std_{w}d        : rolling standard deviation of Total System Load
+    - volatility_index_{w}d: std / mean * 100  (the Care Load Volatility Index,
+                             in percent; higher = less stable)
+    """
+    df = df.copy()
+    reported = df[df["is_reported"]]
+    load = reported["total_system_load"].astype("float64")
+    net = reported["net_daily_intake"].astype("float64")
+
+    for w in windows:
+        load_roll = load.rolling(f"{w}D", min_periods=min_reports)
+        df[f"load_avg_{w}d"] = load_roll.mean()
+        df[f"load_std_{w}d"] = load_roll.std()
+        df[f"net_intake_avg_{w}d"] = net.rolling(f"{w}D", min_periods=min_reports).mean()
+        df[f"volatility_index_{w}d"] = (
+            df[f"load_std_{w}d"] / df[f"load_avg_{w}d"].where(df[f"load_avg_{w}d"] > 0) * 100
+        )
+    return df

@@ -1,5 +1,8 @@
 """Derived healthcare capacity metrics for the UAC care system."""
 
+import pandas as pd
+from pandas import DataFrame
+
 
 def add_total_system_load(df):
     """Total children under federal care: CBP custody + HHS care."""
@@ -123,3 +126,55 @@ def add_rolling_metrics(df, windows=(7, 14), min_reports=3):
             df[f"load_std_{w}d"] / df[f"load_avg_{w}d"].where(df[f"load_avg_{w}d"] > 0) * 100
         )
     return df
+
+
+def _label_sustained(condition, min_reports):
+    """True for every report that sits inside a run of at least min_reports Trues."""
+    run_id = (~condition).cumsum()
+    run_size = condition.groupby(run_id).transform("sum")
+    return condition & (run_size >= min_reports)
+
+
+def compute_thresholds(df, avg_col="load_avg_14d", high_q=0.75, low_q=0.25):
+    """Load levels that separate strain (high) and relief (low) from normal."""
+    avg = df.loc[df["is_reported"], avg_col].dropna()
+    return avg.quantile(high_q), avg.quantile(low_q)
+
+
+def add_strain_relief(df, avg_col="load_avg_14d", high_q=0.75, low_q=0.25, min_reports=7):
+    """Mark sustained strain and relief windows.
+
+    strain_flag : the rolling average stays above the high threshold
+                  (75th percentile by default) for at least min_reports reports
+    relief_flag : the rolling average stays below the low threshold
+                  (25th percentile by default) for at least min_reports reports
+    Thresholds are relative to this dataset's own history (no official
+    capacity figure is available). Unreported days stay empty.
+    """
+    df = df.copy()
+    high_cut, low_cut = compute_thresholds(df, avg_col, high_q, low_q)
+    reported = df[df["is_reported"]]
+    avg = reported[avg_col]
+
+    strain = _label_sustained((avg > high_cut).astype(bool), min_reports)
+    relief = _label_sustained((avg < low_cut).astype(bool), min_reports)
+    df["strain_flag"] = strain.reindex(df.index).astype("boolean")
+    df["relief_flag"] = relief.reindex(df.index).astype("boolean")
+    return df
+
+
+def list_flag_windows(df, flag_col):
+    """One row per window of consecutive flagged reports."""
+    reported = df[df["is_reported"]]
+    flag = reported[flag_col].fillna(False).astype(bool)
+    run_id = (~flag).cumsum()
+    rows = []
+    for _, run in reported[flag].groupby(run_id[flag]):
+        rows.append({
+            "start": run.index[0].date(),
+            "end": run.index[-1].date(),
+            "reports": len(run),
+            "calendar_days": (run.index[-1] - run.index[0]).days + 1,
+            "avg_total_load": round(run["total_system_load"].astype(float).mean()),
+        })
+    return pd.DataFrame(rows, columns=["start", "end", "reports", "calendar_days", "avg_total_load"])

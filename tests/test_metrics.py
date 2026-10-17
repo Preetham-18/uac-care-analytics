@@ -4,6 +4,8 @@ from src.metrics import add_core_metrics
 from src.metrics import add_cumulative_net_intake, add_growth_rate
 from src.metrics import add_backlog_indicators
 from src.trends import summarize_by_period
+from src.metrics import add_rolling_metrics
+
 
 
 def make_row(cbp_custody, hhs_care, transferred, discharged):
@@ -149,3 +151,79 @@ def test_monthly_groups_by_calendar_month():
 def test_invalid_granularity_raises():
     with pytest.raises(ValueError):
         summarize_by_period(make_df(), "Y")
+
+
+def make_rolling_df(dates, loads):
+    idx = pd.DatetimeIndex(pd.to_datetime(dates), name="date")
+    return pd.DataFrame(
+        {
+            "total_system_load": pd.array(loads, dtype="Int64"),
+            "net_daily_intake": pd.array([1] * len(loads), dtype="Int64"),
+            "is_reported": [True] * len(loads),
+        },
+        index=idx,
+    )
+
+
+def test_rolling_average_needs_enough_reports():
+    df = make_rolling_df(pd.date_range("2024-01-01", periods=5), [10, 20, 30, 40, 50])
+    out = add_rolling_metrics(df, windows=(7,), min_reports=3)
+    assert pd.isna(out.iloc[1]["load_avg_7d"])          # only 2 reports so far
+    assert out.iloc[2]["load_avg_7d"] == 20             # mean of 10, 20, 30
+    assert out.iloc[4]["load_avg_7d"] == 30             # mean of all five
+
+
+def test_window_is_measured_in_calendar_days():
+    dates = ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-12"]
+    out = add_rolling_metrics(make_rolling_df(dates, [10, 20, 30, 40]), windows=(7,), min_reports=3)
+    assert pd.isna(out.iloc[3]["load_avg_7d"])          # isolated report after a long gap
+
+
+def test_volatility_index_is_std_over_mean_in_percent():
+    df = make_rolling_df(pd.date_range("2024-01-01", periods=3), [10, 20, 30])
+    out = add_rolling_metrics(df, windows=(7,), min_reports=3)
+    assert round(out.iloc[2]["volatility_index_7d"], 2) == 50.0   # std 10 / mean 20
+
+
+def test_unreported_days_stay_empty_in_rolling_columns():
+    df = make_rolling_df(pd.date_range("2024-01-01", periods=4), [10, 20, 30, 40])
+    df.loc["2024-01-04", ["total_system_load", "net_daily_intake"]] = pd.NA
+    df.loc["2024-01-04", "is_reported"] = False
+    out = add_rolling_metrics(df, windows=(7,), min_reports=3)
+    assert pd.isna(out.iloc[3]["load_avg_7d"])
+
+
+from src.metrics import add_strain_relief, list_flag_windows
+
+
+def make_strain_df(avgs):
+    idx = pd.date_range("2024-01-01", periods=len(avgs), name="date")
+    return pd.DataFrame(
+        {
+            "total_system_load": pd.array([100] * len(avgs), dtype="Int64"),
+            "load_avg_14d": [float(a) for a in avgs],
+            "is_reported": [True] * len(avgs),
+        },
+        index=idx,
+    )
+
+
+def test_short_high_run_is_not_strain():
+    # 3 high values in a row, but we require 4
+    df = make_strain_df([1, 1, 1, 1, 1, 1, 100, 100, 100, 1, 1, 1])
+    out = add_strain_relief(df, high_q=0.5, low_q=0.0, min_reports=4)
+    assert not out["strain_flag"].fillna(False).any()
+
+
+def test_long_high_run_is_strain_and_listed_once():
+    df = make_strain_df([1, 1, 1, 1, 1, 1, 100, 100, 100, 100, 1, 1])
+    out = add_strain_relief(df, high_q=0.5, low_q=0.0, min_reports=4)
+    windows = list_flag_windows(out, "strain_flag")
+    assert len(windows) == 1
+    assert windows.iloc[0]["reports"] == 4
+
+
+def test_low_run_is_relief():
+    df = make_strain_df([100, 100, 100, 100, 100, 100, 1, 1, 1, 1, 100, 100])
+    out = add_strain_relief(df, high_q=1.0, low_q=0.4, min_reports=4)
+    assert out["relief_flag"].fillna(False).sum() == 4

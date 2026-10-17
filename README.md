@@ -78,3 +78,5 @@ before running the notebooks.
 - **Day 9:** Built daily, weekly (Sun-Sat) and monthly trend summaries using per-reported-day averages (`src/trends.py`, `notebooks/08_trends.ipynb`). Peak month Dec 2023, lowest Aug 2025
 
 - - **Day 10:** Added 7- and 14-day rolling averages (calendar windows) and the Care Load Volatility Index (std/mean, %). Stability improved each year; the most volatile period was Feb 2025 (`notebooks/09_rolling_volatility.ipynb`)
+
+- **Day 11:** Detected sustained strain (above the 75th percentile) and relief (below the 25th percentile) windows from the 14-day average load. Main strain period: Aug 2023 to Jan 2024; relief from late Feb 2025 (`notebooks/10_strain_relief.ipynb`)

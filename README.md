@@ -82,3 +82,5 @@ before running the notebooks.
 - **Day 11:** Detected sustained strain (above the 75th percentile) and relief (below the 25th percentile) windows from the 14-day average load. Main strain period: Aug 2023 to Jan 2024; relief from late Feb 2025 (`notebooks/10_strain_relief.ipynb`)
 
 - **Day 12:** Compared the early and late halves of the timeline and each year (`src/compare.py`), and compared CBP with HHS. Average load fell 55% between halves; CBP is ~2.5% of total but twice as variable (`notebooks/11_compare.ipynb`)
+
+- **Day 13:** Built the five KPIs (`src/kpis.py`): Total Children Under Care, Net Intake Pressure, Volatility Index, Backlog Accumulation Rate, Discharge Offset Ratio, for any date range, with tests (`notebooks/12_kpis.ipynb`)

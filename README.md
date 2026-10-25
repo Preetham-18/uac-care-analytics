@@ -84,3 +84,5 @@ before running the notebooks.
 - **Day 12:** Compared the early and late halves of the timeline and each year (`src/compare.py`), and compared CBP with HHS. Average load fell 55% between halves; CBP is ~2.5% of total but twice as variable (`notebooks/11_compare.ipynb`)
 
 - **Day 13:** Built the five KPIs (`src/kpis.py`): Total Children Under Care, Net Intake Pressure, Volatility Index, Backlog Accumulation Rate, Discharge Offset Ratio, for any date range, with tests (`notebooks/12_kpis.ipynb`)
+
+- **Day 14:** Streamlit dashboard v1 (`app/app.py`): date range selector, five KPI cards, and a first load chart. Added `src/pipeline.py` to build the full dataset in one call
